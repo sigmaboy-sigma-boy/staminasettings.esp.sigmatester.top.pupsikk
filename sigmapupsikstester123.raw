@@ -46,7 +46,18 @@ local Players = game:GetService("Players")
 local localPlayer = Players.LocalPlayer
 local playerName = localPlayer.Name
 
-local FakeBlock = false
+_G.EveryAim = false
+
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+FakeBlock = false
+
+local survivorFolder = Workspace:WaitForChild("Players"):WaitForChild("Survivors")
+local killerFolder = Workspace:WaitForChild("Players"):WaitForChild("Killers")
+
+local duration = 2
+local updateRate = 0.03
+local lastUsedAbilities = -1
 
 local survivorsFolder = workspace:WaitForChild("Players"):WaitForChild("Survivors")
 local spectatingFolder = workspace:WaitForChild("Players"):WaitForChild("Spectating")
@@ -424,7 +435,6 @@ local Misk = Window:CreateTab("Misk", "circle-help")
 local Idk = Misk:CreateSection("1x1x1x1 Popups")
 
 local Players = game:GetService("Players")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local player = Players.LocalPlayer
 local uiPath = player:WaitForChild("PlayerGui"):WaitForChild("TemporaryUI")
@@ -541,15 +551,105 @@ local FBKeybind = Misk:CreateKeybind({
 
 local aimbotsectiondivider = Misk:CreateDivider()
 local aimbotsection = Misk:CreateSection("Aimbot(alpha)")
-local aimbotlocal = false
 
 local aimbottogle = Misk:CreateToggle({
-   Name = "AimBot",
+   Name = "AimBot (chance, shedletsky, guest and bugs only)",
    CurrentValue = false,
    Flag = "AimbotToggle", 
    Callback = function(abt)
-    aimbotlocal = abt
+    _G.EveryAim = abt
    end,
 })
+
+local function pressKey(keyCode)
+	VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+end
+
+local function releaseKey(keyCode)
+	VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+end
+
+local function aimCameraAt(part)
+	if not part then return end
+	local camera = Workspace.CurrentCamera
+	local startTime = tick()
+
+	pressKey(Enum.KeyCode.LeftControl)
+
+	local conn
+	conn = RunService.RenderStepped:Connect(function()
+		if tick() - startTime > duration then
+			conn:Disconnect()
+			releaseKey(Enum.KeyCode.LeftControl)
+			return
+		end
+
+		camera.CFrame = CFrame.new(camera.CFrame.Position, part.Position)
+	end)
+end
+
+local function getLocalModel()
+	for _, model in ipairs(survivorFolder:GetChildren()) do
+		if model:IsA("Model") and model:GetAttribute("Username") == localPlayer.Name then
+			return model
+		end
+	end
+	return nil
+end
+
+RunService.Heartbeat:Connect(function()
+	local mapExists = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Ingame") and Workspace.Map.Ingame:FindFirstChild("Map")
+	if not mapExists then
+		lastUsedAbilities = -1
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+	if not _G.EveryAim then return end
+
+	local model = getLocalModel()
+	if not model then return end
+
+	local modelName = model.Name
+	local allowedKeys = {}
+
+	if modelName == "Guest1337" then
+		allowedKeys = {Enum.KeyCode.E, Enum.KeyCode.R}
+	elseif modelName == "Chance" then
+		allowedKeys = {Enum.KeyCode.E}
+	elseif modelName == "Shedletsky" then
+		allowedKeys = {Enum.KeyCode.Q}
+	else
+		return
+	end
+
+	for _, key in ipairs(allowedKeys) do
+		if input.KeyCode == key then
+			local currentValue = model:GetAttribute("AbilitiesUsed")
+			if currentValue == nil then return end
+			local startWait = tick()
+
+			while tick() - startWait < 1 do
+				local newValue = model:GetAttribute("AbilitiesUsed")
+				if newValue and newValue > lastUsedAbilities then
+					lastUsedAbilities = newValue
+					local killerModel = killerFolder:FindFirstChildOfClass("Model")
+					if killerModel then
+						local hrp = killerModel:FindFirstChild("HumanoidRootPart")
+						if hrp then
+							aimCameraAt(hrp)
+						end
+					end
+					break
+				end
+				task.wait(updateRate)
+			end
+
+			break
+		end
+	end
+end)
 
 Rayfield:LoadConfiguration()
