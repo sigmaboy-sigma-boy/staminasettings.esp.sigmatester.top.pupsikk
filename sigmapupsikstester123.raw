@@ -29,13 +29,6 @@ Rayfield:Notify({
 })
 
 Rayfield:Notify({
-   Title = "Спасибо что тестишь мой скрипт",
-   Content = "",
-   Duration = 6.5,
-   Image = "smile",
-})
-
-Rayfield:Notify({
    Title = "USE AT YOUR OWN RISK!!!",
    Content = "USE AT YOUR OWN RISK!!!",
    Duration = 6.5,
