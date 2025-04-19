@@ -68,7 +68,7 @@ local queues = {
 local sigmaexecutorfinder = identifyexecutor()
 
 Rayfield:Notify({
-   Title = "Your executor is: ".. sigmaexecutor,
+   Title = "Your executor is: ".. sigmaexecutorfinder,
    Content = "Notification Content",
    Duration = 6.5,
    Image = 4483362458,
