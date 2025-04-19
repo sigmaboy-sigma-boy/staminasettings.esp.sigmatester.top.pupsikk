@@ -22,6 +22,13 @@ local Window = Rayfield:CreateWindow({
 })
 
 Rayfield:Notify({
+   Title = "Спс что тестишь мой скрипт",
+   Content = "",
+   Duration = 6.5,
+   Image = "smile",
+})
+
+Rayfield:Notify({
    Title = "Its my first script",
    Content = "Credits to tarmasterr for help!",
    Duration = 6.5,
