@@ -540,5 +540,3 @@ local FBKeybind = Misk:CreateKeybind({
 })
 
 Rayfield:LoadConfiguration()
-
---sigma
