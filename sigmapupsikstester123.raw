@@ -507,7 +507,7 @@ local FBKeybind = Misk:CreateKeybind({
          else
             Rayfield:Notify({
             Title = "Notification Title",
-            Content = ("Humannoid does not exist in model: ".. model),
+            Content = ("Humannoid does not exist in model: ".. tostring(model)),
             Duration = 7,
             Image = "badge-info",
             })
@@ -536,6 +536,19 @@ local FBKeybind = Misk:CreateKeybind({
         Image = "badge-info",
     })
       end
+   end,
+})
+
+local aimbotsectiondivider = Misk:CreateDivider()
+local aimbotsection = Misk:CreateSection("Aimbot(alpha)")
+local aimbotlocal = false
+
+local aimbottogle = Misk:CreateToggle({
+   Name = "AimBot",
+   CurrentValue = false,
+   Flag = "AimbotToggle", 
+   Callback = function(abt)
+    aimbotlocal = abt
    end,
 })
 
