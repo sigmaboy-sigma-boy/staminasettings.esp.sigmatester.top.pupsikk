@@ -71,7 +71,7 @@ Rayfield:Notify({
    Title = "Your executor is: ".. sigmaexecutorfinder,
    Content = "Notification Content",
    Duration = 6.5,
-   Image = 4483362458,
+   Image = "loader",
 })
 
 if sigmaexecutorfinder == "Ronix" then
@@ -540,3 +540,5 @@ local FBKeybind = Misk:CreateKeybind({
 })
 
 Rayfield:LoadConfiguration()
+
+--sigma
