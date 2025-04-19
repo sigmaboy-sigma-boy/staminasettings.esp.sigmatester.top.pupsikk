@@ -1,0 +1,542 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Stamina Settings & ESP",
+   Icon = 103662765726428,
+   LoadingTitle = "Stamina Settings & ESP",
+   LoadingSubtitle = "By str_windows.xp",
+   Theme = "Dark Blue",
+   DisableRayfieldPrompts = true,
+   DisableBuildWarnings = true,
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = sigmahubconfig,
+      FileName = "settings"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
+   },
+   KeySystem = false,
+})
+
+Rayfield:Notify({
+   Title = "Its my first script",
+   Content = "Credits to tarmasterr for help!",
+   Duration = 6.5,
+   Image = "smile",
+})
+
+Rayfield:Notify({
+   Title = "USE AT YOUR OWN RISK!!!",
+   Content = "USE AT YOUR OWN RISK!!!",
+   Duration = 6.5,
+   Image = "shield-alert",
+})
+
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local highlightEnabled = false
+local fillTransparency = 0.5
+
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+local playerName = localPlayer.Name
+
+local FakeBlock = false
+
+local survivorsFolder = workspace:WaitForChild("Players"):WaitForChild("Survivors")
+local spectatingFolder = workspace:WaitForChild("Players"):WaitForChild("Spectating")
+
+local colors = {
+	Killers = Color3.fromRGB(255, 0, 0),
+	Items = Color3.fromRGB(255, 243, 113),
+	Generators = Color3.fromRGB(190, 94, 255),
+	Players = Color3.fromRGB(0, 122, 255)
+}
+
+local queues = {
+	Killers = {},
+	Items = {},
+	Generators = {},
+	Players = {}
+}
+
+local sigmaexecutorfinder = identifyexecutor()
+
+Rayfield:Notify({
+   Title = "Your executor is: ".. sigmaexecutor,
+   Content = "Notification Content",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+
+if sigmaexecutorfinder == "Ronix" then
+Rayfield:Notify({
+   Title = "Your executor is supported!",
+   Content = "Almos all functions gonna work",
+   Duration = 6.5,
+   Image = "circle-check",
+})
+elseif sigmaexecutorfinder == "Velocity" then
+Rayfield:Notify({
+   Title = "Velocity executor is supported",
+   Content = "Almost all features might work",
+   Duration = 6.5,
+   Image = "circle-check",
+})
+elseif sigmaexecutorfinder == "Xeno" then
+Rayfield:Notify({
+   Title = "Xeno executor is not supported",
+   Content = "Some features might not work",
+   Duration = 6.5,
+   Image = "circle-alert",
+})
+elseif sigmaexecutorfinder == "AWP" or sigmaexecutorfinder == "awp" or sigmaexecutor == "Awp" then
+Rayfield:Notify({
+   Title = "AWP executor is supported!",
+   Content = "All features gonna work",
+   Duration = 6.5,
+   Image = "circle-check",
+})
+elseif sigmaexecutorfinder == "Solara" or sigmaexecutorfinder == "Solara v3" or sigmaexecutor == "solara" then
+Rayfield:Notify({
+   Title = "Idk if solara supports this script",
+   Content = "Some features might not work",
+   Duration = 6.5,
+   Image = "circle-alert",
+})
+else
+Rayfield:Notify({
+   Title = "We dont recognize your executor",
+   Content = "Some features might not work",
+   Duration = 6.5,
+   Image = "circle-alert",
+})
+end
+
+local function resetHighlight(obj, color)
+	if not obj then return end
+
+	local existing = obj:FindFirstChildOfClass("Highlight")
+	if existing then existing:Destroy() end
+
+	local hl = Instance.new("Highlight")
+	hl.Name = "AutoHighlight"
+	hl.FillColor = color
+	hl.OutlineColor = color
+	hl.FillTransparency = fillTransparency
+	hl.OutlineTransparency = fillTransparency
+	hl.Parent = obj
+end
+
+local function removeAllHighlights()
+	for _, folder in ipairs({Workspace.Players.Killers, Workspace.Players.Survivors}) do
+		if folder then
+			for _, model in ipairs(folder:GetChildren()) do
+				if model:IsA("Model") then
+					local hl = model:FindFirstChild("AutoHighlight")
+					if hl then hl:Destroy() end
+				end
+			end
+		end
+	end
+
+	local ingame = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Ingame")
+	if ingame then
+		for _, obj in ipairs(ingame:GetDescendants()) do
+			if (obj:IsA("Tool") and not obj:IsDescendantOf(ingame:FindFirstChild("Map"))) or (obj:IsA("Model") and obj.Name == "Generator") then
+				local hl = obj:FindFirstChild("AutoHighlight")
+				if hl then hl:Destroy() end
+			end
+		end
+	end
+end
+
+local function collectObjects()
+	for k in pairs(queues) do queues[k] = {} end
+
+	local killersFolder = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Killers")
+	if killersFolder then
+		for _, model in ipairs(killersFolder:GetChildren()) do
+			if model:IsA("Model") then table.insert(queues.Killers, model) end
+		end
+	end
+
+	local playersFolder = Workspace:FindFirstChild("Players") and Workspace.Players:FindFirstChild("Survivors")
+	if playersFolder then
+		for _, model in ipairs(playersFolder:GetChildren()) do
+			if model:IsA("Model") then table.insert(queues.Players, model) end
+		end
+	end
+
+	task.wait(1)
+
+	local ingame = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Ingame")
+	if ingame then
+		for _, desc in ipairs(ingame:GetDescendants()) do
+			if desc:IsA("Tool") and not desc:IsDescendantOf(ingame:FindFirstChild("Map")) then
+				table.insert(queues.Items, desc)
+			elseif desc:IsA("Model") and desc.Name == "Generator" then
+				table.insert(queues.Generators, desc)
+			end
+		end
+	end
+end
+
+local function applyHighlightsToAll()
+	for category, queue in pairs(queues) do
+		for _, obj in ipairs(queue) do
+			if obj and obj.Parent then
+				resetHighlight(obj, colors[category])
+			end
+		end
+	end
+end
+
+local function updateExistingHighlights()
+	for category, queue in pairs(queues) do
+		for _, obj in ipairs(queue) do
+			local hl = obj:FindFirstChild("AutoHighlight")
+			if hl then
+				hl.FillColor = colors[category]
+				hl.OutlineColor = colors[category]
+				hl.FillTransparency = fillTransparency
+				hl.OutlineTransparency = fillTransparency
+			end
+		end
+	end
+end
+
+local EspTab = Window:CreateTab("ESP Settings", "eye")
+EspTab:CreateSection("ESP Configuration")
+
+EspTab:CreateToggle({
+	Name = "Toggle ESP",
+	CurrentValue = false,
+	Callback = function(state)
+		highlightEnabled = state
+
+		if not state then
+			removeAllHighlights()
+		end
+	end
+})
+
+EspTab:CreateSlider({
+	Name = "ESP Transparency",
+	Range = {0, 1},
+	Increment = 0.05,
+	CurrentValue = fillTransparency,
+    Flag = "ESPTransparency",
+	Callback = function(value)
+		fillTransparency = value
+		if highlightEnabled then
+			updateExistingHighlights()
+		end
+	end
+})
+
+for category, _ in pairs(colors) do
+	EspTab:CreateColorPicker({
+		Name = "Color: " .. category,
+		Color = colors[category],
+        Flag = "Colors" .. category,
+		Callback = function(color)
+			colors[category] = color
+			if highlightEnabled then
+				updateExistingHighlights()
+			end
+		end
+	})
+end
+
+local espcolordivider = EspTab:CreateDivider()
+local espcolorsection = EspTab:CreateSection("Normal Esp-Color-Settings (If you change by mistake)")
+
+local espitemcolorlabel = EspTab:CreateLabel("Items: 255, 243, 113", "pipette", Color3.fromRGB(0, 0, 0), false)
+local espplayerscolorlabel = EspTab:CreateLabel("Players: 0, 122, 255", "pipette", Color3.fromRGB(0, 0, 0), false)
+local espgeneratorcolorlabel = EspTab:CreateLabel("Generators: 190, 94, 255", "pipette", Color3.fromRGB(0, 0, 0), false)
+local espkillerscolorlabel = EspTab:CreateLabel("Killers 255, 0, 0", "pipette", Color3.fromRGB(0, 0, 0), false)
+
+RunService.Heartbeat:Connect(function()
+	if not highlightEnabled then return end
+
+	local processed = 0
+	local maxPerFrame = 2
+
+	for category, queue in pairs(queues) do
+		while #queue > 0 and processed < maxPerFrame do
+			local obj = table.remove(queue, 1)
+			if obj and obj.Parent then
+				resetHighlight(obj, colors[category])
+				processed += 1
+			end
+		end
+	end
+end)
+
+task.spawn(function()
+	while true do
+		repeat task.wait(0.3)
+		until highlightEnabled and Workspace:FindFirstChild("Map")
+			and Workspace.Map:FindFirstChild("Ingame")
+			and Workspace.Map.Ingame:FindFirstChild("Map")
+
+		removeAllHighlights()
+		collectObjects()
+
+		repeat task.wait(0.5)
+		until not highlightEnabled or not Workspace:FindFirstChild("Map")
+			or not Workspace.Map:FindFirstChild("Ingame")
+			or not Workspace.Map.Ingame:FindFirstChild("Map")
+
+		removeAllHighlights()
+	end
+end)
+
+local num1 = 0
+local num2 = 20
+local num3 = 10
+local num4 = 24
+local num5 = false
+local autinj = false
+
+local StaminaSettings = Window:CreateTab("Stamina Settings", 103662765726428)
+StaminaSettings:CreateSection("Stamina Configuration")
+
+StaminaSettings:CreateInput({
+    Name = "Min Stamina",
+    CurrentValue = tonumber(num1),
+    PlaceholderText = "Number",
+    RemoveTextAfterFocusLost = false,
+    Flag = "Input1",
+    Callback = function(ms)
+    num1 = ms
+    end,
+})
+
+StaminaSettings:CreateInput({
+    Name = "Stamina Gain",
+    CurrentValue = tonumber(num2),
+    PlaceholderText = "Number",
+    RemoveTextAfterFocusLost = false,
+    Flag = "Input2",
+    Callback = function(sg)
+    num2 = sg
+    end,
+})
+
+StaminaSettings:CreateInput({
+    Name = "Stamina Loss",
+    CurrentValue = tonumber(num3),
+    PlaceholderText = "Number",
+    RemoveTextAfterFocusLost = false,
+    Flag = "Input3",
+    Callback = function(sl)
+    num3 = sl
+    end,
+})
+
+StaminaSettings:CreateInput({
+    Name = "Stamina Speed",
+    CurrentValue = tonumber(num4),
+    PlaceholderText = "Number",
+    RemoveTextAfterFocusLost = false,
+    Flag = "Input4",
+    Callback = function(sp)
+    num4 = sp
+    end,
+})
+
+StaminaSettings:CreateToggle({
+    Name = "Disable Stamina Drain",
+    CurrentValue = num5,
+    Flag = "DisableDrain",
+    Callback = function(sd)
+    num5 = sd
+    end,
+})
+
+StaminaSettings:CreateToggle({
+    Name = "Auto Inject",
+    CurrentValue = num5,
+    Flag = "AutoInject",
+    Callback = function(ai)
+    autinj = ai
+    end,
+})
+
+StaminaSettings:CreateButton({
+    Name = "Inj3ct Stamina Settings",
+    Callback = function()
+    local Sprinting = game:GetService("ReplicatedStorage").Systems.Character.Game.Sprinting
+    local stamina = require(Sprinting)
+    stamina.MinStamina = tonumber(num1)
+    stamina.StaminaGain = tonumber(num2)
+    stamina.StaminaLoss = tonumber(num3)
+    stamina.SprintSpeed = tonumber(num4)
+    stamina.StaminaLossDisabled = num5
+   end,
+})
+
+local function applyStaminaSettings()
+	if autinj then
+		local sigmaphonk = ReplicatedStorage.Systems.Character.Game.Sprinting
+		local mmm = require(sigmaphonk)
+		mmm.MinStamina = tonumber(num1)
+		mmm.StaminaGain = tonumber(num2)
+		mmm.StaminaLoss = tonumber(num3)
+		mmm.SprintSpeed = tonumber(num4)
+		mmm.StaminaLossDisabled = num5
+	end
+end
+
+local mapPresent = false
+local cooldown = 0
+
+RunService.Heartbeat:Connect(function(dt)
+	cooldown -= dt
+	if cooldown > 0 then return end
+	cooldown = 0.5
+
+	local hasMap = Workspace:FindFirstChild("Map")
+		and Workspace.Map:FindFirstChild("Ingame")
+		and Workspace.Map.Ingame:FindFirstChild("Map")
+
+	if hasMap and not mapPresent and autinj then
+		mapPresent = true
+
+		task.delay(2.5, function()
+			if autinj then
+				applyStaminaSettings()
+			end
+		end)
+	elseif not hasMap and mapPresent then
+		mapPresent = false
+	end
+end)
+
+local Misk = Window:CreateTab("Misk", "circle-help")
+local Idk = Misk:CreateSection("1x1x1x1 Popups")
+
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local player = Players.LocalPlayer
+local uiPath = player:WaitForChild("PlayerGui"):WaitForChild("TemporaryUI")
+_G.Close1x1x1x1Popups = false
+
+Misk:CreateToggle({
+    Name = "Auto 1x4 popups",
+    CurrentValue = false,
+    Flag = "AutoClose1x4",
+    Callback = function(aucl1x4)
+    _G.Close1x1x1x1Popups = aucl1x4
+    end,
+})
+
+local function clickButton(button)
+	if not button or not button:IsA("ImageButton") then return end
+
+	local absPos = button.AbsolutePosition
+	local absSize = button.AbsoluteSize
+	local centerX = absPos.X + absSize.X / 2
+	local centerY = absPos.Y + absSize.Y / 2
+
+	VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
+	VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
+end
+
+task.spawn(function()
+	while true do
+		task.wait(0.25)
+
+		if not _G.Close1x1x1x1Popups then continue end
+		if not uiPath then continue end
+
+		local popups = {}
+
+		for _, obj in ipairs(uiPath:GetChildren()) do
+			if obj:IsA("ImageButton") and obj.Name == "1x1x1x1Popup" then
+				table.insert(popups, obj)
+			end
+		end
+
+		for _, popup in ipairs(popups) do
+			clickButton(popup)
+			task.wait(0.03)
+		end
+	end
+end)
+
+local miskdivider = Misk:CreateDivider()
+local fbkb = Misk:CreateSection("Fake Block")
+
+local dontworkonkillerwarning = Misk:CreateLabel("Dont work on killer", "circle-alert", Color3.fromRGB(0, 0, 0), false)
+
+local Toggle = Misk:CreateToggle({
+   Name = "FakeBlock Toggle",
+   CurrentValue = false,
+   Flag = "FBtoggle",
+   Callback = function(fb)
+      FakeBlock = fb
+   end,
+})
+
+local FBKeybind = Misk:CreateKeybind({
+   Name = "Play Animation Keybind",
+   CurrentKeybind = "Y",
+   HoldToInteract = false,
+   Flag = "FBkeybind",
+   Callback = function()
+      local function playAnimationOnModel(model)
+         if not FakeBlock then
+            return
+         end
+         local humanoid = model:FindFirstChildOfClass("Humanoid")
+         if humanoid then
+            local animation = Instance.new("Animation")
+            animation.AnimationId = "rbxassetid://72722244508749"
+
+            local track = humanoid:LoadAnimation(animation)
+            track:Play()
+         else
+            Rayfield:Notify({
+            Title = "Notification Title",
+            Content = ("Humannoid does not exist in model: ".. model),
+            Duration = 7,
+            Image = "badge-info",
+            })
+         end
+      end
+      local found = false
+      for _, model in ipairs(survivorsFolder:GetChildren()) do
+         if model:IsA("Model") and model:GetAttribute("Username") == playerName then
+            playAnimationOnModel(model)
+            found = true
+            break
+         end
+      end
+      if not found then
+         local model = spectatingFolder:FindFirstChild(playerName)
+         if model and model:IsA("Model") then
+            playAnimationOnModel(model)
+            found = true
+         end
+      end
+      if not found then
+      Rayfield:Notify({
+        Title = "Your Model not found",
+        Content = "May be you try to execute while being killer",
+        Duration = 7.5,
+        Image = "badge-info",
+    })
+      end
+   end,
+})
+
+Rayfield:LoadConfiguration()
